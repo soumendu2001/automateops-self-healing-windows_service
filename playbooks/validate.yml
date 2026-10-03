@@ -1,0 +1,146 @@
+---
+- name: Get Final Service Status
+  ansible.windows.win_service_info:
+    name: "{{ target_service }}"
+  register: final_service
+
+- name: Save Final Service State
+  set_fact:
+    service_state_after: "{{ final_service.services[0].state }}"
+
+- name: Display Final Service Status
+  debug:
+    msg:
+      - "Service: {{ target_service }}"
+      - "Final State: {{ service_state_after }}"
+
+########################################################################
+# OPTIONAL PORT VALIDATION
+########################################################################
+
+- name: Validate Listening Port
+  ansible.windows.win_shell: |
+    $result = Test-NetConnection `
+      -ComputerName localhost `
+      -Port {{ validation_port }} `
+      -InformationLevel Quiet
+
+    Write-Output $result
+  register: port_validation
+
+  when:
+    - validation_type == "port"
+    - validation_port | int > 0
+
+- name: Display Port Validation Result
+  debug:
+    msg:
+      - "Port Validation Executed"
+      - "Port: {{ validation_port }}"
+      - "Result: {{ port_validation.stdout | trim }}"
+
+  when:
+    - validation_type == "port"
+    - validation_port | int > 0
+
+########################################################################
+# SERVICE HEALTH VALIDATION
+########################################################################
+
+- name: Service Recovery Successful
+  debug:
+    msg: >
+      Service {{ target_service }}
+      successfully recovered and is currently running.
+
+  when:
+    - service_state_after == "running"
+
+- name: Service Recovery Failed
+  debug:
+    msg: >
+      Service {{ target_service }}
+      remains unavailable.
+      Manual investigation may be required.
+
+  when:
+    - service_state_after != "running"
+
+########################################################################
+# FINAL STATUS CALCULATION
+########################################################################
+
+- name: Set Final Status
+  set_fact:
+    final_status: >-
+      {{
+        'AUTO-RECOVERED'
+        if service_state_after == 'running'
+        else 'INVESTIGATION REQUIRED'
+      }}
+
+########################################################################
+# PORT VALIDATION SUCCESS MESSAGE
+########################################################################
+
+- name: Application Validation Successful
+  debug:
+    msg: >
+      Service restarted successfully and application port
+      {{ validation_port }} is responding.
+
+  when:
+    - validation_type == "port"
+    - validation_port | int > 0
+    - service_state_after == "running"
+    - port_validation.stdout | trim | lower == "true"
+
+########################################################################
+# PORT VALIDATION FAILURE MESSAGE
+########################################################################
+
+- name: Application Validation Failed
+  debug:
+    msg: >
+      Service is running but application port
+      {{ validation_port }}
+      is not responding. Further investigation required.
+
+  when:
+    - validation_type == "port"
+    - validation_port | int > 0
+    - service_state_after == "running"
+    - port_validation.stdout | trim | lower != "true"
+
+########################################################################
+# EXECUTIVE SUMMARY
+########################################################################
+
+- name: Display Final Recovery Summary
+  debug:
+    msg:
+      - "========================================"
+      - "SERVICE SELF-HEALING SUMMARY"
+      - "========================================"
+      - "Host: {{ inventory_hostname }}"
+      - "Service: {{ target_service }}"
+      - "State Before: {{ service_state_before }}"
+      - "State After: {{ service_state_after }}"
+      - "Recovery Attempts: {{ recovery_attempt_count | default(0) }}"
+      - "Validation Type: {{ validation_type }}"
+      - "Status: {{ final_status }}"
+      - "========================================"
+
+########################################################################
+# OPTIONAL PORT SUMMARY
+########################################################################
+
+- name: Display Port Validation Summary
+  debug:
+    msg:
+      - "Application Port Validation"
+      - "Port: {{ validation_port }}"
+      - "Reachable: {{ port_validation.stdout | trim }}"
+  when:
+    - validation_type == "port"
+    - validation_port | int > 0
