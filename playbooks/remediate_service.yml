@@ -1,0 +1,29 @@
+---
+- name: Initialize Runtime Variables
+  set_fact:
+    service_current_state: "{{ service_state_before }}"
+    recovery_complete: false
+
+- name: Restart Attempt 1
+  include_tasks: service_restart_attempt.yml
+  vars:
+    attempt_no: 1
+  when:
+    - not recovery_complete
+    - service_current_state != "running"
+
+- name: Restart Attempt 2
+  include_tasks: service_restart_attempt.yml
+  vars:
+    attempt_no: 2
+  when:
+    - not recovery_complete
+    - service_current_state != "running"
+
+- name: Restart Attempt 3
+  include_tasks: service_restart_attempt.yml
+  vars:
+    attempt_no: 3
+  when:
+    - not recovery_complete
+    - service_current_state != "running"
