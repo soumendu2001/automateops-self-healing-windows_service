@@ -1,0 +1,494 @@
+ AWS
+Ubuntu-Control
+├── Ansible
+├── Git
+├── Existing Demo Project
+└── Windows Inventory
+
+Ubuntu-AWX (New Server)
+├── K3s
+├── AWX Operator
+└── AWX
+
+Windows2016
+└── Target Host
+
+Lab Sizing
+Create a new Ubuntu VM/EC2:
+OS: Ubuntu 24.04 LTS
+CPU: 4 vCPU
+RAM: 8 GB
+Disk: 40 GB
+WX is containerized and needs significantly more resources than Ansible CLI. The AWX project documentation recommends deployment via the AWX Operator and Kubernetes
+
+Step 1: Build an AWX Server
+SSH to the new Ubuntu VM:
+
+ssh ubuntu@awx-server
+Update packages:
+sudo apt update
+sudo apt upgrade -y
+Install utilities:
+sudo apt install curl git wget -y
+Step 2: Install K3s
+AWX is typically deployed on Kubernetes through the AWX Operator.
+Install K3s:
+curl -sfL https://get.k3s.io | sh -
+Verify K3s is Installed
+sudo systemctl status k3s
+Test kubectl with sudo
+sudo kubectl get nodes
+Configure kubectl for your user
+•	mkdir -p ~/.kube
+•	sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+•	sudo chown $USER:$USER ~/.kube/config
+•	sed -i "s/127.0.0.1/$(hostname -I | awk '{print $1}')/g" ~/.kube/config
+•	export KUBECONFIG=~/.kube/config
+Verify:
+sudo kubectl get nodes
+
+Step 3: Install AWX Operator
+Create namespace: 
+sudo kubectl create namespace awx
+Install helm
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+verify:
+which helm
+helm version
+Install Operator:
+helm repo add awx-operator https://ansible-community.github.io/awx-operator-helm/
+helm install awx-operator awx-operator/awx-operator -n awx
+helm repo update
+verify:
+helm repo list
+
+
+Step 1: Verify K3s is healthy
+sudo kubectl get nodes
+
+Step 2: Copy K3s kubeconfig to your user
+sudo ls -l /etc/rancher/k3s/k3s.yaml
+Create kube directory:
+mkdir -p ~/.kube
+Copy config:
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+Grant ownership:
+sudo chown $USER:$USER ~/.kube/config
+Modify localhost reference:
+sed -i "s/127.0.0.1/$(hostname -I | awk '{print $1}')/g" ~/.kube/config
+Set environment:
+export KUBECONFIG=~/.kube/config
+Verify:
+kubectl get nodes
+helm install awx-operator awx-operator/awx-operator -n awx
+Check:
+sudo kubectl get pods -n awx
+Wait until operator pods are Running.
+
+Step 4: Deploy AWX
+Create file:
+vi awx-demo.yml
+Paste:
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+       name: awx
+spec:
+     service_type: nodeport
+Deploy:
+kubectl apply -f awx-demo.yml -n awx
+Watch:
+kubectl get pods -n awx
+This may take several minutes because PostgreSQL and AWX containers are created.
+
+Step 5: Get AWX URL
+Check services:
+sudo kubectl get svc -n awx
+sudo kubectl get pods -n awx
+sudo kubectl get awx -n awx
+
+(it may take some time).
+
+Example:
+awx-service NodePort 80:32639
+Access:
+http://<awx-server-ip>:32639
+
+Step 6: Get Admin Password
+Retrieve password:
+sudo kubectl get secret awx-admin-password \
+-n awx \
+-o jsonpath="{.data.password}" | base64 -d
+Username: admin
+Password: <returned password>
+
+
+Step 7: Login to AWX
+You should now see:
+Dashboard
+Projects
+Inventories
+Credentials
+Templates
+
+Step 8: Create GitHub Project
+In AWX:
+Resources
+→ Projects
+→ Add
+Name: Windows User Lifecycle Management
+SCM Type: Git
+Repository: https://github.com/soumendu2001/ansible-windows-user-management.git
+Save.
+Sync the project.
+AWX will pull:
+manage_users.yml
+vars/users.yml
+inventories
+From GitHub. AWX projects can sync Ansible content from SCM repositories such as Git
+Step 9: Create Inventory
+Resources
+→ Inventories
+→ Create
+Name: Windows Inventory
+Create host: windows1
+Variables: 
+ansible_connection: winrm
+ansible_port: 5985
+ansible_host: <windows-ip>
+ansible_winrm_transport: ntlm
+ansible_winrm_server_cert_validation: ignore
+
+Step 10: Create Credentials
+Resources
+→ Credentials
+→ Add
+Type:
+Machine
+Username: Administrator
+Password: ********
+Step 11: Create Job Template
+Resources
+→ Templates
+→ Add Job Template
+Configure:
+Name:
+Windows User Lifecycle
+
+Inventory:
+Windows Inventory
+
+Project:
+Windows User Lifecycle Management
+
+Playbook:
+manage_users.yml
+
+Credential:
+Windows Administrator
+Step 12: Run Your Existing Playbook
+Click:
+Launch 
+AWX will execute:  manage_users.yml
+against Windows exactly like:
+ansible-playbook -i inventories/hosts.ini manage_users.yml
+but from the AWX UI. AWX provides a web UI, REST API, scheduling, inventory management, credential management, and execution history around standard Ansible automation
+Windows Prerequisites Section
+Enable-PSRemoting -Force
+winrm quickconfig
+Enable-NetFirewallRule  -DisplayGroup "Windows Remote Management"
+`
+
+Issue 1: K3s Permission Error
+Error
+kubectl get nodes
+
+error loading config file
+/etc/rancher/k
+Cause
+K3s kubeconfig owned by root.
+Resolution
+sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+
+Validation
+kubectl get nodes
+
+Expected:
+awx Ready
+
+Issue 2: Outdated AWX Operator URL
+Error
+404 Not Found
+while running:
+kubectl apply -f \
+https://raw.githubusercontent.com/ansible/awx-operator/devel/deploy/awx-operator.yaml
+Cause
+Deprecated URL. 
+
+Resolution
+helm repo add awx-operator \
+https://ansible-community.github.io/awx-operator-helm/
+helm repo update
+helm install awx-operator \
+awx-operator/awx-
+
+Issue 3: Inventory Group Missing
+Error
+Could not match supplied host pattern, ignoring: windows
+skipping: no hosts matched
+Cause
+Playbook:
+hosts: windows
+Inventory:
+windows1
+No group named:
+windows
+Resolution
+Create group:
+windows
+Add host:
+windows1
+to the group.
+Issue 4: Invalid YAML in Host Variables
+Error
+yaml is not in object format
+
+Cause
+Using:
+ansible_user=ansible
+instead of:
+ansible_user: ansible
+``
+Resolution
+ansible_host: x.x.x.x
+ansible_connection: winrm
+ansible_port: 5985
+ansible_winrm_transport: ntlm
+ansible_winrm_server_cert_validation: ignore
+Issue 5: users.yml Parsing Error
+Error:
+Syntax Error while loading YAML
+
+Cause
+You used:
+{% for i in range(1,121) %}
+inside a vars file.
+Ansible expects pure YAML in: vars/users.yml
+Resolution
+Use valid YAML:
+users:
+- name: appuser1
+  state: present
+Issue 6: Missing state Attribute
+Error
+'dict object' has no attribute 'state'
+
+Cause
+User entries missing:
+state:
+Resolution
+users:
+- name: appuser1
+  state: present
+
+or modify playbook:
+when: item.state | default('present') == 'present'
+Missing Validation Commands
+After each major step, your SOP should include validation.
+Validate K3s
+•	kubectl get nodes
+•	kubectl get pods -A
+•	kubectl cluster-info
+Validate Operator
+kubectl get pods -n awx
+
+Expected:
+awx-operator-controller-manager
+Running
+
+Validate AWX
+•	kubectl get svc -n awx
+•	kubectl get pods -n awx
+
+Expected:
+1.	awx-web
+2.	awx-task
+3.	awx-postgres
+Running.
+
+Missing WinRM Validation
+Before creating Job Templates:
+nc -zv <windows-ip> 5985
+
+Expected:
+
+succeeded
+
+Missing GitOps Section
+Your SOP should explicitly document:
+GitHub
+↓
+Project Sync
+↓
+AWX Job Template
+↓
+Windows Server
+
+Missing Auto Sync Section
+Add:
+Project Sync Schedule
+Projects
+→ Schedules
+→ Every 2 Minutes
+Job Template Schedule
+Templates
+→ Schedules
+→ Every 2 Minutes
+GitHub Webhook: GitHub → AWX
+
+
+Inventory Troubleshooting
+Error: Could not match supplied host pattern, ignoring: windows
+
+because:
+hosts: windows
+existed in the playbook but no AWX group called windows existed. 
+
+Error	Cause	Resolution
+k3s.yaml permission denied	Root-owned kubeconfig	chmod 644
+Could not match supplied host pattern	Missing AWX group	Create windows group
+YAML is not in object format	Invalid syntax	Use YAML key:value
+dict object has no attribute state	Missing state field	Add state: present
+Syntax Error while loading YAML	Jinja syntax in vars file	Use pure YAML
+
+
+Project Sync vs Job Sync
+Project Sync
+↓
+Downloads latest Git code
+Job Template Run
+↓
+Executes playbook using downloaded code
+GitHub Webhook Configuration
+AWX Template
+→ Enable Webhook
+→ Generate URL + Secret
+
+GitHub
+→ Settings
+→ Webhooks
+→ Add Webhook
+
+AWX
+→ Template
+→ Enable Webhook
+→ GitHub
+
+Copy:
+- Webhook URL
+- Secret
+
+GitHub
+→ Settings
+→ Webhooks
+→ Add Webhook
+
+Payload URL = URL from AWX
+Secret = Secret from AWX
+Content Type = application/json
+
+Events = Push
+3. Scheduled Automation
+Projects
+→ Schedules
+→ Every 2 Minutes
+
+Templates
+→ Schedules
+→ Every 2 Minutes
+
+Upgrade Procedure
+•	helm repo update
+•	helm upgrade awx-operator ...
+
+Logging and Troubleshooting
+•	kubectl get pods -n awx
+•	kubectl logs deployment/awx-operator-controller-manager -n awx
+•	kubectl describe pod awx-web-xxxxx -n awx
+•	kubectl get events -n awx
+
+Troubleshooting:
+Error: 
+awx-web-57964945b9-hkkt4 Error
+awx-web-57964945b9-9k4d9 ContainerStatusUnknown
+awx-task-58c667d496-vf9c8 Init:Error
+awx-task-58c667d496-wtl2s Init:Error
+Steps of troubleshooting:
+First, get the exact error
+kubectl describe pod awx-web-57964945b9-hkkt4 -n awx
+kubectl logs awx-web-57964945b9-hkkt4 -n awx
+First, get the exact error
+If logs fail because the pod restarted:
+kubectl logs awx-web-57964945b9-hkkt4 -n awx –previous
+Also check the task pod:
+kubectl describe pod awx-task-58c667d496-vf9c8 -n awx
+
+Check Operator Logs
+kubectl logs deployment/awx-operator-controller-manager -n awx
+Look for:
+•	ERROR
+•	WARNING
+•	reconcile
+•	failed
+
+Check if AWX Secret Exists
+kubectl get secrets -n awx
+If present:
+kubectl get secret awx-admin-password \
+-n awx \
+-o jsonpath="{.data.password}" | base64 -d
+Most useful command:
+•	kubectl get events -n awx --sort-by=.metadata.creationTimestamp
+•	kubectl describe pod awx-web-57964945b9-hkkt4 -n awx
+•	kubectl describe pod awx-task-58c667d496-vf9c8 -n awx
+•	kubectl logs deployment/awx-operator-controller-manager -n awx
+
+Confirm Disk Usage
+•	df -h
+•	sudo du -sh /var/lib/rancher/k3s/*
+Check Node Storage Status
+•	kubectl describe node awx | grep -A10 "Allocated resources"
+•	kubectl describe node awx | grep -i storage
+Check disk usage
+•	sudo df -h
+•	lsblk
+increase disk space
+EC2
+•	→ Volumes
+•	→ Select Root Volume
+•	→ Actions
+•	→ Modify Volume
+•	→ Size = 50 GB
+•	→ Save
+
+Then Expand Linux Filesystem
+
+Check disk layout: lsblk
+You will probably see:
+nvme0n1
+├─nvme0n1p1
+├─nvme0n1p13
+└─nvme0n1p15
+Then run:
+•	sudo growpart /dev/nvme0n1 1
+•	sudo resize2fs /dev/nvme0n1p1
+•	df -h
+
+Then Restart the Failed Pods
+sudo kubectl delete pod -n awx –all
+
+The Operator will recreate them.
+Monitor:
+kubectl get pods -n awx -w
