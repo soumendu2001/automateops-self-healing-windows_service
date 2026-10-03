@@ -1,7 +1,7 @@
 ---
 - name: Get Final Service Status
   ansible.windows.win_service_info:
-    name: "{{ target_service }}"
+    name: "{{ target_service_name }}"
   register: final_service
 
 - name: Save Final Service State
