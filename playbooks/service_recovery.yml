@@ -7,7 +7,7 @@
     max_restart_attempts: 3
     validation_type: "{{ validation_type | default('service') }}"
     validation_port: "{{ validation_port | default(0) }}"
-    target_service: "{{ target_service_name}}"
+    target_service_name: "{{ target_service}}"
 
   tasks:
     - include_tasks: diagnose_service.yml
