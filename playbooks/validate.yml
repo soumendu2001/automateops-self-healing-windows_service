@@ -11,7 +11,7 @@
 - name: Display Final Service Status
   debug:
     msg:
-      - "Service: {{ target_service }}"
+      - "Service: {{ target_service_name }}"
       - "Final State: {{ service_state_after }}"
 
 ########################################################################
@@ -50,7 +50,7 @@
 - name: Service Recovery Successful
   debug:
     msg: >
-      Service {{ target_service }}
+      Service {{ target_service_name }}
       successfully recovered and is currently running.
 
   when:
@@ -59,7 +59,7 @@
 - name: Service Recovery Failed
   debug:
     msg: >
-      Service {{ target_service }}
+      Service {{ target_service_name }}
       remains unavailable.
       Manual investigation may be required.
 
@@ -123,7 +123,7 @@
       - "SERVICE SELF-HEALING SUMMARY"
       - "========================================"
       - "Host: {{ inventory_hostname }}"
-      - "Service: {{ target_service }}"
+      - "Service: {{ target_service_name }}"
       - "State Before: {{ service_state_before }}"
       - "State After: {{ service_state_after }}"
       - "Recovery Attempts: {{ recovery_attempt_count | default(0) }}"
