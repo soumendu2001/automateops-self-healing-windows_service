@@ -3,7 +3,7 @@
   debug:
     msg:
       - "Target Host: {{ inventory_hostname }}"
-      - "Target Service: {{ target_service }}"
+      - "Target Service: {{ target_service_name }}"
 
 - name: Check Service Status
   ansible.windows.win_service_info:
