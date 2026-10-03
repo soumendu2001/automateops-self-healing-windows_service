@@ -1,0 +1,14 @@
+---
+- name: Self-Healing Service Recovery
+  hosts: "{{ target_host | default('windows') }}"
+  gather_facts: yes
+
+  vars:
+    max_restart_attempts: 3
+    validation_type: "{{ validation_type | default('service') }}"
+    validation_port: "{{ validation_port | default(0) }}"
+
+  tasks:
+    - include_tasks: diagnose_service.yml
+    - include_tasks: remediate_service.yml
+    - include_tasks: validate_service.yml
