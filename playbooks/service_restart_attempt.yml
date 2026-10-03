@@ -9,7 +9,7 @@
 
 - name: Start Service
   ansible.windows.win_service:
-    name: "{{ target_service }}"
+    name: "{{ target_service_name }}"
     state: started
   register: service_restart
 
@@ -17,7 +17,7 @@
   debug:
     msg:
       - "Service Restart Command Executed"
-      - "Target Service: {{ target_service }}"
+      - "Target Service: {{ target_service_name }}"
 
 - name: Wait For Stabilization
   pause:
@@ -25,7 +25,7 @@
 
 - name: Check Service Status Again
   ansible.windows.win_service_info:
-    name: "{{ target_service }}"
+    name: "{{ target_service_name }}"
   register: service_recheck
 
 - name: Update Current State
@@ -46,7 +46,7 @@
 - name: Display Success
   debug:
     msg: >
-      Service {{ target_service }}
+      Service {{ target_service_name }}
       successfully recovered.
 
   when:
