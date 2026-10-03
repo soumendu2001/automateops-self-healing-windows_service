@@ -7,7 +7,7 @@
 
 - name: Check Service Status
   ansible.windows.win_service_info:
-    name: "{{ target_service }}"
+    name: "{{ target_service_name }}"
   register: service_info
 
 - name: Save Initial Service State
@@ -17,5 +17,5 @@
 - name: Display Service Status
   debug:
     msg:
-      - "Service: {{ target_service }}"
+      - "Service: {{ target_service_name }}"
       - "State Before Recovery: {{ service_state_before }}"
