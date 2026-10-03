@@ -1,0 +1,53 @@
+---
+- name: Display Restart Attempt
+  debug:
+    msg: "Restart Attempt {{ attempt_no }}"
+
+- name: Update Attempt Counter
+  set_fact:
+    recovery_attempt_count: "{{ attempt_no }}"
+
+- name: Start Service
+  ansible.windows.win_service:
+    name: "{{ target_service }}"
+    state: started
+  register: service_restart
+
+- name: Display Restart Result
+  debug:
+    msg:
+      - "Service Restart Command Executed"
+      - "Target Service: {{ target_service }}"
+
+- name: Wait For Stabilization
+  pause:
+    seconds: 10
+
+- name: Check Service Status Again
+  ansible.windows.win_service_info:
+    name: "{{ target_service }}"
+  register: service_recheck
+
+- name: Update Current State
+  set_fact:
+    service_current_state: "{{ service_recheck.services[0].state }}"
+
+- name: Display Current State
+  debug:
+    msg: "Current State: {{ service_current_state }}"
+
+- name: Recovery Successful
+  set_fact:
+    recovery_complete: true
+
+  when:
+    - service_current_state == "running"
+
+- name: Display Success
+  debug:
+    msg: >
+      Service {{ target_service }}
+      successfully recovered.
+
+  when:
+    - recovery_complete
