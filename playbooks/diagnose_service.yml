@@ -1,0 +1,21 @@
+---
+- name: Display Service Being Evaluated
+  debug:
+    msg:
+      - "Target Host: {{ inventory_hostname }}"
+      - "Target Service: {{ target_service }}"
+
+- name: Check Service Status
+  ansible.windows.win_service_info:
+    name: "{{ target_service }}"
+  register: service_info
+
+- name: Save Initial Service State
+  set_fact:
+    service_state_before: "{{ service_info.services[0].state }}"
+
+- name: Display Service Status
+  debug:
+    msg:
+      - "Service: {{ target_service }}"
+      - "State Before Recovery: {{ service_state_before }}"
