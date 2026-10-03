@@ -1,0 +1,7 @@
+{
+  "extra_vars": {
+   "target_host": "windows1",
+   "target_service": "Spooler",
+   "validation_type": "service"
+  }
+}
