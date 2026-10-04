@@ -10,6 +10,11 @@
     target_service_name: "{{ target_service}}"
 
   tasks:
-    - include_tasks: diagnose_service.yml
+    - name: Process Services
+      include_tasks: service_workflow.yml
+      loop: "{{ target_services}}"
+      loop_control:
+        loop_var: current_service
+  
     - include_tasks: remediate_service.yml
     - include_tasks: validate.yml
