@@ -7,12 +7,12 @@
     max_restart_attempts: 3
     validation_type: "{{ validation_type | default('service') }}"
     validation_port: "{{ validation_port | default(80) }}"
-    target_service_name: "{{ target_service}}"
+    target_service_name: "{{ target_services}}"
 
   tasks:
     - name: Process Services
       include_tasks: service_workflow.yml
-      loop: "{{ target_services}}"
+      loop: "{{ target_service_name}}"
       loop_control:
         loop_var: current_service
   
