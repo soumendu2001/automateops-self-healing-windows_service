@@ -1,7 +1,9 @@
 ---
-- name: Set Current Service
+- name: Set Current Service Details
   set_fact:
-    target_service_name: "{{ current_service }}"
+    target_service_name: "{{ current_service.name }}"
+    validation_type: "{{ current_service.validation_type | default('service') }}"
+    validation_port: "{{ current_service.validation_port | default(0) }}"
 
 - include_tasks: diagnose_service.yml
 
