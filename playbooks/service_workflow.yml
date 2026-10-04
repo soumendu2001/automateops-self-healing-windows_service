@@ -5,6 +5,13 @@
     validation_type: "{{ current_service.validation_type | default('service') }}"
     validation_port: "{{ current_service.validation_port | default(0) }}"
 
+- name: Display Current Service
+  debug:
+    msg:
+      - "Service: {{ target_service_name }}"
+      - "Validation Type: {{ validation_type }}"
+      - "Validation Port: {{ validation_port }}"
+
 - include_tasks: diagnose_service.yml
 
 - include_tasks: remediate_service.yml
