@@ -10,7 +10,7 @@
     attempt_no: 1
   when:
     - not recovery_complete
-    - service_current_state != "running"
+    - service_current_state != "started"
 
 - name: Restart Attempt 2
   include_tasks: service_restart_attempt.yml
@@ -18,7 +18,7 @@
     attempt_no: 2
   when:
     - not recovery_complete
-    - service_current_state != "running"
+    - service_current_state != "started"
 
 - name: Restart Attempt 3
   include_tasks: service_restart_attempt.yml
@@ -26,4 +26,4 @@
     attempt_no: 3
   when:
     - not recovery_complete
-    - service_current_state != "running"
+    - service_current_state != "started"
