@@ -10,10 +10,12 @@
     name: "{{ target_service_name }}"
   register: service_info
 
-  - name: Verify Service Exists
+- name: Verify Service Exists
   fail:
-    msg: "Service '{{ target_service_name }}' was not found on {{ inventory_hostname }}"
-  when: service_info.services | length == 0
+    msg: >
+      Service '{{ target_service_name }}' was not found on {{ inventory_hostname }}
+  when: 
+    - service_info.services | length == 0
 
 - name: Save Initial Service State
   set_fact:
