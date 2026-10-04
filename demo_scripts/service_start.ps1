@@ -1,20 +1,34 @@
 $Headers = @{
-    Authorization = "Bearer <TOKEN>"
+    Authorization = "Bearer tj8wlEZoMipoO6KzONlrBosj4ywdnw"
     "Content-Type" = "application/json"
 }
+
 
 $Body = @"
 {
   "extra_vars": {
-    "target_host": "windows1",
-    "target_service": "Spooler",
-    "validation_type": "service"
+    "services": [
+      {
+        "name": "Spooler",
+        "validation_type": "service"
+      },
+      {
+        "name": "W32Time",
+        "validation_type": "service"
+      },
+      {
+        "name": "W3SVC",
+        "validation_type": "port",
+        "validation_port": 80
+      }
+    ]
   }
 }
 "@
+`
 
 $response = Invoke-RestMethod `
-    -Uri "http://<AWX-IP>:<PORT>/api/v2/job_templates/<JOB_ID>/launch/" `
+    -Uri "http://34.232.178.199:32013/api/v2/job_templates/11/launch/" `
     -Method POST `
     -Headers $Headers `
     -Body $Body
