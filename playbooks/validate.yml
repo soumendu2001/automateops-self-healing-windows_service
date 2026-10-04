@@ -75,7 +75,7 @@
     final_status: >-
       {{
         'AUTO-RECOVERED'
-        if service_state_after == 'started  '
+        if service_state_after == "started"
         else 'INVESTIGATION REQUIRED'
       }}
 
