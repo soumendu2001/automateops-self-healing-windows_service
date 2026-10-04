@@ -7,4 +7,4 @@
 
 - include_tasks: remediate_service.yml
 
-- include_tasks: validate_service.yml
+- include_tasks: validate.yml
