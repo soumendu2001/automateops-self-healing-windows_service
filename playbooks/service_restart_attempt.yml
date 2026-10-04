@@ -41,7 +41,7 @@
     recovery_complete: true
 
   when:
-    - service_current_state == "running"
+    - service_current_state == "started"
 
 - name: Display Success
   debug:
