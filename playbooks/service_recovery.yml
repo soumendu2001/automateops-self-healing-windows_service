@@ -5,8 +5,12 @@
 
   tasks:
 
-    - name: Process Services
-      include_tasks: service_workflow.yml
-      loop: "{{ services }}"
+  - name: Initialize Recovery Summary
+    set_fact:
+      recovery_summary: []
+
+  - name: Process Services
+    include_tasks: service_workflow.yml
+    loop: "{{ services }}"
       loop_control:
         loop_var: current_service
