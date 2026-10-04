@@ -1,0 +1,10 @@
+---
+- name: Set Current Service
+  set_fact:
+    target_service_name: "{{ current_service }}"
+
+- include_tasks: diagnose_service.yml
+
+- include_tasks: remediate_service.yml
+
+- include_tasks: validate_service.yml
