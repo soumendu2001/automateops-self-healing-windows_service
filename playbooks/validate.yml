@@ -54,7 +54,7 @@
       successfully recovered and is currently running.
 
   when:
-    - service_state_after == "running"
+    - service_state_after == "started"
 
 - name: Service Recovery Failed
   debug:
@@ -64,7 +64,7 @@
       Manual investigation may be required.
 
   when:
-    - service_state_after != "running"
+    - service_state_after != "started"
 
 ########################################################################
 # FINAL STATUS CALCULATION
@@ -75,7 +75,7 @@
     final_status: >-
       {{
         'AUTO-RECOVERED'
-        if service_state_after == 'running'
+        if service_state_after == 'started  '
         else 'INVESTIGATION REQUIRED'
       }}
 
@@ -92,7 +92,7 @@
   when:
     - validation_type == "port"
     - validation_port | int > 0
-    - service_state_after == "running"
+    - service_state_after == "started"
     - port_validation.stdout | trim | lower == "true"
 
 ########################################################################
@@ -109,7 +109,7 @@
   when:
     - validation_type == "port"
     - validation_port | int > 0
-    - service_state_after == "running"
+    - service_state_after == "started"
     - port_validation.stdout | trim | lower != "true"
 
 ########################################################################
