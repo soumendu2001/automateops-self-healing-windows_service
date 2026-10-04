@@ -3,13 +3,10 @@
   hosts: "{{ target_host | default('windows') }}"
   gather_facts: yes
 
-  vars:
-    max_restart_attempts: 3
-
   tasks:
 
     - name: Process Services
       include_tasks: service_workflow.yml
-      loop: "{{ target_services }}"
+      loop: "{{ services }}"
       loop_control:
         loop_var: current_service
