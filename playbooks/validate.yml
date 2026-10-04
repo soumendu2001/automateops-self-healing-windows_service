@@ -79,6 +79,22 @@
         else 'INVESTIGATION REQUIRED'
       }}
 
+- name: Add Service Result To Summary
+  set_fact:
+    recovery_summary: >-
+      {{
+        recovery_summary +
+        [
+          {
+            'service': target_service_name,
+            'before': service_state_before,
+            'after': service_state_after,
+            'attempts': recovery_attempt_count | default(0),
+            'status': final_status
+          }
+        ]
+      }}
+
 ########################################################################
 # PORT VALIDATION SUCCESS MESSAGE
 ########################################################################
