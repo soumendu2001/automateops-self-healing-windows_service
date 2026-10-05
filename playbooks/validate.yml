@@ -128,24 +128,6 @@
     - service_state_after == "started"
     - port_validation.stdout | trim | lower != "true"
 
-########################################################################
-# EXECUTIVE SUMMARY
-########################################################################
-
-- name: Display Final Recovery Summary
-  debug:
-    msg:
-      - "========================================"
-      - "SERVICE SELF-HEALING SUMMARY"
-      - "========================================"
-      - "Host: {{ inventory_hostname }}"
-      - "Service: {{ target_service_name }}"
-      - "State Before: {{ service_state_before }}"
-      - "State After: {{ service_state_after }}"
-      - "Recovery Attempts: {{ recovery_attempt_count | default(0) }}"
-      - "Validation Type: {{ validation_type }}"
-      - "Status: {{ final_status }}"
-      - "========================================"
 
 ########################################################################
 # OPTIONAL PORT SUMMARY
