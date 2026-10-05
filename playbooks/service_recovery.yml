@@ -18,10 +18,9 @@
     - name: Display Consolidated Recovery Summary
       debug:
         msg: |
-		   ===============================================
+		  ===============================================
 		   MULTI-SERVICE SELF-HEALING SUMMARY
-		   ===============================================
-
+		  ===============================================
 			{% for svc in recovery_summary %}
 			 Service : {{ svc.service }}
 			 Before  : {{ svc.before }}
