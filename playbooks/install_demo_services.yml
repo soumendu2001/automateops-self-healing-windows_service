@@ -4,6 +4,10 @@
   gather_facts: false
 
   tasks:
+    - name: Create Temp Directory
+      ansible.windows.win_file:
+        path: C:\Temp
+        state: directory
 
     ####################################################################
     # IIS
