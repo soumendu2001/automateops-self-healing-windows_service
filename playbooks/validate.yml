@@ -74,11 +74,15 @@
   set_fact:
     final_status: >-
       {{
-        'AUTO-RECOVERED'
-        if service_state_after == "started"
-        else 'INVESTIGATION REQUIRED'
+        governance_status
+        if governance_status != 'AUTO_ALLOWED'
+        else
+        (
+          'AUTO-RECOVERED'
+          if service_state_after == 'started'
+          else 'INVESTIGATION REQUIRED'
+        )
       }}
-
 - name: Add Service Result To Summary
   set_fact:
     recovery_summary: >-
