@@ -1,0 +1,146 @@
+---
+- name: Install Windows Demo Services
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+
+    ####################################################################
+    # IIS
+    ####################################################################
+
+    - name: Install IIS
+      ansible.windows.win_feature:
+        name:
+          - Web-Server
+          - Web-WebServer
+          - Web-Common-Http
+          - Web-Default-Doc
+          - Web-Static-Content
+        state: present
+        include_management_tools: true
+
+    - name: Ensure W3SVC Started
+      ansible.windows.win_service:
+        name: W3SVC
+        state: started
+        start_mode: auto
+
+    - name: Create Test Homepage
+      ansible.windows.win_copy:
+        dest: C:\inetpub\wwwroot\index.html
+        content: |
+          <html>
+          <body>
+          <h1>AutomateOps Self-Healing Demo</h1>
+          </body>
+          </html>
+
+    ####################################################################
+    # OpenSSH
+    ####################################################################
+
+    - name: Install OpenSSH Server
+      ansible.windows.win_shell: |
+        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+      args:
+        executable: powershell.exe
+
+    - name: Start OpenSSH
+      ansible.windows.win_service:
+        name: sshd
+        start_mode: auto
+        state: started
+      ignore_errors: true
+
+    ####################################################################
+    # Windows Time
+    ####################################################################
+
+    - name: Enable Windows Time Service
+      ansible.windows.win_service:
+        name: W32Time
+        start_mode: auto
+        state: started
+
+    ####################################################################
+    # Print Spooler
+    ####################################################################
+
+    - name: Start Print Spooler
+      ansible.windows.win_service:
+        name: Spooler
+        start_mode: auto
+        state: started
+
+    ####################################################################
+    # Demo Custom Service
+    ####################################################################
+
+    - name: Create Demo Service Script Folder
+      ansible.windows.win_file:
+        path: C:\DemoService
+        state: directory
+
+    - name: Create Demo Script
+      ansible.windows.win_copy:
+        dest: C:\DemoService\DemoService.ps1
+        content: |
+          while($true)
+          {
+              Start-Sleep 60
+          }
+
+    - name: Install NSSM
+      ansible.windows.win_get_url:
+        url: https://nssm.cc/release/nssm-2.24.zip
+        dest: C:\Temp\nssm.zip
+
+      ignore_errors: true
+
+    - name: Download SQL Express
+      win_get_url:
+        url: https://go.microsoft.com/fwlink/?linkid=866658
+        dest: C:\Temp\SQLEXPR.exe
+
+    - name: Install SQL Express
+      win_package:
+        path: C:\Temp\SQLEXPR.exe
+        arguments: >
+          /Q
+          /ACTION=Install
+          /FEATURES=SQLENGINE
+          /INSTANCENAME=SQLEXPRESS
+          /IACCEPTSQLSERVERLICENSETERMS
+        state: present
+
+    - name: Download Splunk UF
+      win_get_url:
+        url: https://download.splunk.com/products/universalforwarder/releases/latest/windows/splunkforwarder.msi
+        dest: C:\Temp\splunkforwarder.msi
+
+    - name: Install Splunk UF
+      win_package:
+        path: C:\Temp\splunkforwarder.msi
+        arguments: AGREETOLICENSE=Yes /quiet
+      state: present
+
+    ####################################################################
+    # Summary
+    ####################################################################
+
+    - name: Collect Service States
+      ansible.windows.win_service_info:
+        name: "{{ item }}"
+      loop:
+        - Spooler
+        - W32Time
+        - W3SVC
+        - sshd
+        - MSSQLSERVER
+        - SplunkForwarder
+      register: installed_services
+
+    - name: Display Service Status
+      debug:
+        var: installed_services.results
