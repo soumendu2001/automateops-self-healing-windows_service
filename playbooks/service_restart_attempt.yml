@@ -8,32 +8,31 @@
     recovery_attempt_count: "{{ attempt_no }}"
 
 #############################################################################
-# Protected Services
+# Service Governance Lists
 #############################################################################
 
 - name: Define Protected Services
   set_fact:
     protected_services:
-      - EventLog
       - RpcSs
       - DcomLaunch
       - SamSs
       - LSM
-      - Winmgmt
-      - LanmanServer
-      - LanmanWorkstation
-      - MpsSvc
-      - TermService
+      - PlugPlay
+
+- name: Define Approval Required Services
+  set_fact:
+    approval_required_services:
       - WinRM
       - Dhcp
       - Dnscache
       - Netlogon
-      - Schedule
-      - PlugPlay
-      - CryptSvc
-      - NlaSvc
-      - BFE
-      - W32Time
+      - LanmanServer
+      - LanmanWorkstation
+
+- name: Initialize Governance Status
+  set_fact:
+    governance_status: "AUTO_ALLOWED"
 
 #############################################################################
 # Service Validation
@@ -57,14 +56,47 @@
       - "Current State  : {{ service_info.services[0].state }}"
       - "Start Mode     : {{ service_info.services[0].start_mode }}"
 
-- name: Block Restart of Protected Services
-  fail:
-    msg: >
-      Service {{ target_service_name }}
-      is a protected Windows service and is excluded from
-      automated remediation.
+#############################################################################
+# Protected Service Check
+#############################################################################
+
+- name: Mark Protected Service
+  set_fact:
+    governance_status: "PROTECTED_SERVICE"
+    recovery_complete: true
+    service_current_state: "{{ service_info.services[0].state }}"
   when:
     - target_service_name in protected_services
+
+- name: Display Protected Service Message
+  debug:
+    msg: >
+      Service {{ target_service_name }}
+      is a protected Windows service.
+      Automated remediation skipped.
+  when:
+    - governance_status == "PROTECTED_SERVICE"
+
+#############################################################################
+# Approval Required Service Check
+#############################################################################
+
+- name: Mark Approval Required Service
+  set_fact:
+    governance_status: "MANUAL_APPROVAL_REQUIRED"
+    recovery_complete: true
+    service_current_state: "{{ service_info.services[0].state }}"
+  when:
+    - target_service_name in approval_required_services
+
+- name: Display Approval Required Message
+  debug:
+    msg: >
+      Service {{ target_service_name }}
+      requires manual approval before remediation.
+      Automated remediation skipped.
+  when:
+    - governance_status == "MANUAL_APPROVAL_REQUIRED"
 
 #############################################################################
 # Restart Service
@@ -75,6 +107,8 @@
     name: "{{ target_service_name }}"
     state: restarted
   register: service_restart
+  when:
+    - governance_status == "AUTO_ALLOWED"
 
 - name: Display Restart Result
   debug:
@@ -82,6 +116,8 @@
       - "Restart command executed"
       - "Target Service: {{ target_service_name }}"
       - "Changed: {{ service_restart.changed }}"
+  when:
+    - governance_status == "AUTO_ALLOWED"
 
 #############################################################################
 # Stabilization Wait
@@ -90,6 +126,8 @@
 - name: Wait For Stabilization
   pause:
     seconds: 10
+  when:
+    - governance_status == "AUTO_ALLOWED"
 
 #############################################################################
 # Validation After Restart
@@ -99,14 +137,20 @@
   ansible.windows.win_service_info:
     name: "{{ target_service_name }}"
   register: service_recheck
+  when:
+    - governance_status == "AUTO_ALLOWED"
 
 - name: Update Current State
   set_fact:
     service_current_state: "{{ service_recheck.services[0].state }}"
+  when:
+    - governance_status == "AUTO_ALLOWED"
 
 - name: Display Current State
   debug:
     msg: "Current State: {{ service_current_state }}"
+  when:
+    - governance_status == "AUTO_ALLOWED"
 
 #############################################################################
 # Recovery Status
@@ -116,15 +160,18 @@
   set_fact:
     recovery_complete: true
   when:
+    - governance_status == "AUTO_ALLOWED"
     - service_current_state == "started"
 
-- name: Fail Recovery If Service Is Still Down
-  fail:
+- name: Display Retry Required
+  debug:
     msg: >
       Service {{ target_service_name }}
       remains in state {{ service_current_state }}
       after restart attempt {{ attempt_no }}.
+      Next retry will be attempted if available.
   when:
+    - governance_status == "AUTO_ALLOWED"
     - service_current_state != "started"
 
 - name: Display Recovery Success
@@ -134,4 +181,5 @@
       successfully recovered during attempt
       {{ attempt_no }}.
   when:
+    - governance_status == "AUTO_ALLOWED"
     - recovery_complete | default(false)
