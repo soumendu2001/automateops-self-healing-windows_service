@@ -102,22 +102,7 @@
 
       ignore_errors: true
 
-    - name: Download SQL Express
-      win_get_url:
-        url: https://go.microsoft.com/fwlink/?linkid=866658
-        dest: C:\Temp\SQLEXPR.exe
-
-    - name: Install SQL Express
-      win_package:
-        path: C:\Temp\SQLEXPR.exe
-        arguments: >
-          /Q
-          /ACTION=Install
-          /FEATURES=SQLENGINE
-          /INSTANCENAME=SQLEXPRESS
-          /IACCEPTSQLSERVERLICENSETERMS
-        state: present
-
+   
     - name: Download Splunk UF
       win_get_url:
         url: https://download.splunk.com/products/universalforwarder/releases/latest/windows/splunkforwarder.msi
