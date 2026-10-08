@@ -1,5 +1,5 @@
 ---
-- include_tasks: install_demo_services.yml
+
 - name: Set Current Service Details
   set_fact:
     target_service_name: "{{ current_service.name }}"
