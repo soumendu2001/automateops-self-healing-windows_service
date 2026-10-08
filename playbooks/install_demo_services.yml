@@ -123,7 +123,7 @@
       win_package:
         path: C:\Temp\splunkforwarder.msi
         arguments: AGREETOLICENSE=Yes /quiet
-      state: present
+        state: present
 
     ####################################################################
     # Summary
