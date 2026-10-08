@@ -77,42 +77,6 @@
         start_mode: auto
         state: started
 
-    ####################################################################
-    # Demo Custom Service
-    ####################################################################
-
-    - name: Create Demo Service Script Folder
-      ansible.windows.win_file:
-        path: C:\DemoService
-        state: directory
-
-    - name: Create Demo Script
-      ansible.windows.win_copy:
-        dest: C:\DemoService\DemoService.ps1
-        content: |
-          while($true)
-          {
-              Start-Sleep 60
-          }
-
-    - name: Install NSSM
-      ansible.windows.win_get_url:
-        url: https://nssm.cc/release/nssm-2.24.zip
-        dest: C:\Temp\nssm.zip
-
-      ignore_errors: true
-
-   
-    - name: Download Splunk UF
-      win_get_url:
-        url: https://download.splunk.com/products/universalforwarder/releases/latest/windows/splunkforwarder.msi
-        dest: C:\Temp\splunkforwarder.msi
-
-    - name: Install Splunk UF
-      win_package:
-        path: C:\Temp\splunkforwarder.msi
-        arguments: AGREETOLICENSE=Yes /quiet
-        state: present
 
     ####################################################################
     # Summary
@@ -126,8 +90,7 @@
         - W32Time
         - W3SVC
         - sshd
-        - MSSQLSERVER
-        - SplunkForwarder
+        
       register: installed_services
 
     - name: Display Service Status
